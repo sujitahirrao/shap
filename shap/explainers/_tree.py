@@ -633,6 +633,16 @@ class TreeEnsemble:
             self.trees = [SingleTree(e.tree_, scaling=scaling, data=data, data_missing=data_missing) for e in model.estimators_]
             self.objective = objective_name_map.get(model.criterion, None)
             self.tree_output = "raw_value"
+        # Added by Sujit
+        # GitHub issue #335
+        elif safe_isinstance(model, ["sklearn.ensemble.AdaBoostClassifier", "sklearn.ensemble._weight_boosting.AdaBoostClassifier"]):
+            assert hasattr(model, "estimators_"), "Model has no `estimators_`! Have you called `model.fit`?"
+            self.internal_dtype = model.estimators_[0].tree_.value.dtype.type
+            self.input_dtype = np.float32
+            scaling = 1.0 / len(model.estimators_)
+            self.trees = [Tree(e.tree_, normalize=True, scaling=scaling) for e in model.estimators_]
+            self.objective = objective_name_map.get(model.base_estimator_.criterion, None)
+            self.tree_output = "probability"
         elif safe_isinstance(model, ["sklearn.ensemble.IsolationForest", "sklearn.ensemble._iforest.IsolationForest"]):
             self.dtype = np.float32
             scaling = 1.0 / len(model.estimators_) # output is average of trees
